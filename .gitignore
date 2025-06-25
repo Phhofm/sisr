@@ -1,0 +1,72 @@
+# .gitignore for sisr repository
+
+# Byte-compiled / optimized / DLL files
+
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+
+*.so
+
+# Distribution / packaging
+
+.Python
+build/
+develop-eggs/
+dist/
+eggs/
+*.egg-info/
+.installed.cfg
+*.manifest
+*.spec
+
+# Installer logs
+
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+
+.coverage
+.tox/
+.pytest_cache/
+htmlcov/
+
+# PyInstaller
+
+*.spec
+build/
+dist/
+
+# Virtual environment
+
+venv/
+.venv/
+env/
+.env/
+
+# Editor files
+
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# OS-specific files
+
+.DS_Store
+Thumbs.db
+
+# Jupyter Notebook files
+
+.ipynb_checkpoints/
+
+# Miscellaneous
+
+*.log
+*.tmp
+*.bak
+*.swp
+*.swo

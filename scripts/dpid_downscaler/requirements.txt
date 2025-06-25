@@ -1,0 +1,4 @@
+# Core dependencies
+numpy
+pepeline
+pepedpid
