@@ -1,161 +1,102 @@
-# AetherNet: A High-Performance & Efficient SISR Network
+# AetherNet: High-Performance Quantization-Aware Super-Resolution
+⚠️ Under Development: Code and features may change without prior notice.
 
-**⚠️ DISCLAIMER: Under active development and testing. This network is not yet in a frozen state and its architecture, training strategies, or best practices may change at any time. Use for experimental purposes and be aware of potential future breaking changes. ⚠️**
+## ✨ Introduction
 
-## 🌌 About AetherNet
+Welcome to **AetherNet**, a novel Single Image Super-Resolution (SISR) network designed from the ground up for exceptional visual quality and unparalleled inference speed, especially on hardware accelerators. Developed by Philip Hofmann with the assistance of advanced AI, AetherNet leverages cutting-edge architectural components and a robust deployment strategy, making it ideal for real-time applications, edge devices, and scenarios demanding top-tier performance.
 
-AetherNet is a novel Single Image Super-Resolution (SISR) network designed to achieve state-of-the-art perceptual quality while prioritizing computational efficiency and deployability. The name "Aether" (from ancient Greek αἰθήρ, meaning 'pure, fresh air' or 'the upper regions of space') reflects its design goals: to produce clear, pure high-resolution images efficiently, reaching for the "higher regions" of performance without excessive computational "weight."
+Our core philosophy with AetherNet is **"Quality & Speed, Quantization-Ready."** We achieve this by integrating advanced re-parameterization techniques and explicitly supporting Quantization-Aware Training (QAT), paving the way for highly optimized INT8 TensorRT engines.
 
-## 🎯 Design Goals & Approach
+## 🌌 The AetherNet Design & Strategy
 
-The primary goal behind AetherNet's design is to strike an optimal balance between **super-resolution quality**, **inference speed**, and **resource efficiency**. Many state-of-the-art SISR networks achieve impressive results but often come with high computational costs, making them challenging for real-time applications or deployment on resource-constrained hardware.
+AetherNet's architecture is meticulously crafted around a few key principles to achieve its goals:
 
-AetherNet's approach addresses this by:
+1.  **Structural Re-parameterization with Large Kernels (`ReparamLargeKernelConv`):**
+    * **Innovation:** We've implemented a custom re-parameterizable large kernel convolution. During training, this module effectively learns complex, global contextual information using a large receptive field (e.g., 11x11 or 13x13 kernel) in parallel with a smaller kernel (e.g., 3x3).
+    * **Inference Advantage:** For deployment, these parallel branches are "fused" into a single, equivalent large kernel convolution. This process eliminates redundant computations, significantly reducing inference latency without sacrificing the rich contextual understanding gained during training. This directly translates to faster processing than many traditional large-kernel designs.
 
-1. **Optimizing Receptive Field:** Achieving a broad receptive field (essential for capturing global context) without resorting to computationally expensive large kernel convolutions during inference.
+2.  **Gated Feed-Forward Networks (`GatedFFN`):**
+    * **Innovation:** AetherNet incorporates Gated FFNs within its core blocks. Unlike standard FFNs, the gating mechanism provides a dynamic control over feature flow, allowing the network to selectively emphasize or attenuate information. This enhances the network's non-linear transformation capabilities and improves feature mixing, contributing to superior reconstruction quality.
 
-2. **Efficient Feature Transformation:** Employing lightweight yet powerful modules for feature mixing and non-linearity, avoiding the quadratic complexity of traditional attention mechanisms.
+3.  **Robust AetherBlock Construction:**
+    * Each `AetherBlock` combines the `ReparamLargeKernelConv` and `GatedFFN`, complemented by `LayerNormalization` for stable training and `Stochastic Depth (DropPath)` for effective regularization. This holistic design ensures both powerful feature extraction and improved generalization.
 
-3. **Deployment-Readiness:** Incorporating techniques like structural re-parameterization for easy model fusion and ensuring compatibility with industry-standard inference acceleration tools like NVIDIA TensorRT.
+4.  **Optimized Upsampling:**
+    * We utilize efficient `PixelShuffle` (sub-pixel convolution) for image reconstruction, a proven method that prevents common artifacts and efficiently increases resolution.
 
-## 🛠️ Architectural Design & Components
+## 🎯 Our Goal: Superior Speed & Quality with INT8 TensorRT and Optimized PyTorch Deployment
 
-AetherNet is built upon a hybrid design that strategically combines several advanced techniques:
+The ultimate objective of AetherNet is to deliver exceptional super-resolution performance in real-world deployment scenarios. This is achieved through a streamlined release workflow focused on achieving highly optimized models for various environments:
 
-* **ReparamLargeKernelConv:**
+1.  **Quantization-Aware Training (QAT):** AetherNet is designed for QAT. During training (e.g., using `neosr`), the model is instrumented with `FakeQuantize` modules. This allows the model's weights and activations to adapt to the constraints of 8-bit quantization *during training*, minimizing quality loss compared to conventional post-training quantization.
 
-  * **What it is:** This module introduces a large convolutional kernel during training for a wide receptive field, crucial for comprehensive context understanding in SR. Crucially, its weights can be structurally re-parameterized and fused into a single, smaller, and highly efficient convolution for inference.
+2.  **Model Fusion:** After QAT, all `ReparamLargeKernelConv` modules are fused into their efficient single-convolution counterparts.
 
-  * **Why it's used:** It allows the network to learn global image context like large-kernel convolutions, which are beneficial for image restoration, but then collapse into efficient, standard convolutions for fast runtime inference, mitigating the computational overhead typically associated with large kernels. This is a key contributor to AetherNet's efficiency.
+3.  **Optimized PyTorch Model Export:** Beyond merely an intermediate step, the conversion process directly yields a fused PyTorch `.pth` file. This is an optimized PyTorch model that benefits from the speed gains of the fusion process and can be readily utilized in other PyTorch-based inference frameworks like Spandrel or ChaiNNer. This provides a direct path to high-performance inference within the PyTorch ecosystem without requiring further conversions for CPU or GPU inference (outside of TensorRT).
 
-* **Gated Feed-Forward Network (GatedFFN):**
+4.  **ONNX Export:** The fused, QAT-trained PyTorch model is exported to ONNX format (FP32 and optionally FP16). Thanks to QAT, these ONNX models already contain the necessary Quantize-DeQuantize (QDQ) nodes, making them ready for efficient INT8 conversion.
 
-  * **What it is:** A custom feed-forward network that incorporates a "gating" mechanism (GELU activation applied to one branch, which then multiplies another).
+5.  **TensorRT Engine Creation:** The exported ONNX files are then used to build highly optimized INT8 TensorRT engines. TensorRT is NVIDIA's high-performance inference optimizer and runtime, which can deliver significant speedups by leveraging hardware-specific optimizations and INT8 precision.
 
-  * **Why it's used:** This design enhances the network's capacity for non-linear feature transformation and feature interaction, akin to a lightweight, channel-wise attention mechanism. It offers improved expressiveness and adaptivity compared to standard FFNs, without the quadratic computational cost of full self-attention often found in Transformer-based models.
+This end-to-end workflow ensures that AetherNet models maintain their high perceptual quality while achieving remarkable speed gains across diverse deployment targets, from standard PyTorch environments to highly specialized TensorRT engines.
 
-* **Residual Connections with Stochastic Depth (DropPath):**
+## 🤝 The "Single Source of Truth" Concept
 
-  * **What it is:** Standard skip connections that add the input of a block to its output. Stochastic Depth (often called DropPath) is a regularization technique where paths (residual branches) are randomly dropped during training.
+AetherNet embraces a "single source of truth" development paradigm for maximum maintainability:
 
-  * **Why it's used:** Residual connections are essential for training very deep neural networks by enabling gradients to flow more easily, preventing vanishing gradient problems, and facilitating the learning of residual mappings. Stochastic Depth further improves generalization by preventing overfitting and encouraging independent feature learning across paths.
+* **`core/aether_core.py`:** This file contains the pure, framework-agnostic definition of the AetherNet architecture. It is the central, canonical representation of the model.
 
-* **Layer Normalization:**
+* **Framework Wrappers:** Instead of duplicating the model code, training frameworks (like `neosr`, `traiNNer-redux`) and inference frameworks (like `spandrel`) will implement lightweight wrappers that import and utilize the `aether` class directly from `aether_core.py`.
 
-  * **What it is:** A normalization technique applied across the features of an individual sample within a layer.
+This modular approach ensures that any architectural changes or bug fixes in the core AetherNet definition only need to be applied in one place (`aether_core.py`), automatically propagating to all integrated codebases. This vastly improves maintainability, reduces development overhead, and guarantees consistency across all deployments.
 
-  * **Why it's used:** It helps stabilize and accelerate the training process, particularly in deep networks with complex feature transformations, by normalizing inputs to each sub-layer.
+## 🚀 Comparison to Other Networks
 
-* **LeakyReLU Activation:**
+While networks like **SPAN** and **RealPLKSR** have pushed the boundaries of SISR, AetherNet distinguishes itself through:
 
-  * **What it is:** A rectified linear unit (ReLU) variant that allows a small, non-zero gradient when the input is negative.
+* **Explicit Fusion for Inference:** Many large-kernel models achieve impressive results but may rely on complex multi-branch inference or configurations that don't easily fuse into a single, highly efficient operation. AetherNet's `ReparamLargeKernelConv` is purpose-built for this fusion, providing a direct path to speed without compromising kernel size benefits.
 
-  * **Why it's used:** It helps prevent the "dying ReLU" problem (where neurons can become inactive for negative inputs), ensuring that gradients can still flow, contributing to more stable and robust training, especially in generative tasks like super-resolution.
+* **Integrated QAT for INT8 Excellence:** Unlike models that primarily target FP32 inference and rely on post-training quantization (which often incurs significant quality degradation), AetherNet's native QAT support ensures that the model learns to operate effectively under 8-bit precision from the outset. This translates to superior INT8 TensorRT performance, both in terms of speed and maintained visual fidelity.
 
-* **PixelShuffle (Sub-pixel Convolution):**
+* **Maintainability-First Design:** The "single source of truth" and wrapper strategy is a significant architectural improvement for long-term project health and community contributions, distinguishing it from research codebases that might be harder to adapt or maintain across different tools.
 
-  * **What it is:** A commonly used technique for upsampling that rearranges elements from a low-resolution feature map into a higher-resolution image, effectively increasing spatial resolution.
+AetherNet's existence is justified by its commitment to providing a balanced solution that excels in both visual quality and **practical deployability at scale**, particularly in resource-constrained environments or high-throughput systems that benefit from INT8 optimization.
 
-  * **Why it's used:** It's a highly efficient and effective upsampling method that avoids checkerboard artifacts often associated with transposed convolutions, producing cleaner and sharper edges.
+## 📋 Network Options
 
-These design choices collectively aim to deliver a network that is both powerful in image reconstruction and practical for deployment, striking a balance that many other SR solutions struggle with.
+AetherNet offers configurable parameters to tailor its performance and size:
 
-## 📊 Network Options / Variants
+* `in_chans`: Number of input image channels (e.g., `3` for RGB).
 
-AetherNet comes in several variants to cater to different performance and resource requirements:
+* `embed_dim`: Feature dimension across the network, controlling model "width."
 
-* **`aether_small`**:
+* `depths`: Tuple of integers, specifying the number of `AetherBlocks` in each stage, controlling model "depth."
 
-  * **Parameters:** `embed_dim=96`, `depths=(4, 4, 4, 4)`
+    * **`aether_small`**: `embed_dim=96`, `depths=(4, 4, 4, 4)`
 
-  * **Purpose:** Lighter model, suitable for resource-constrained environments or applications where speed is paramount and a slight quality trade-off is acceptable.
+    * **`aether_medium`**: `embed_dim=128`, `depths=(6, 6, 6, 6, 6, 6)`
 
-* **`aether_medium`**:
+    * **`aether_large`**: `embed_dim=180`, `depths=(8, 8, 8, 8, 8, 8, 8, 8)`, `mlp_ratio=2.5`, `lk_kernel=13`
 
-  * **Parameters:** `embed_dim=128`, `depths=(6, 6, 6, 6, 6, 6)`
+* `mlp_ratio`: Multiplier for the hidden dimension of the `GatedFFN` relative to `embed_dim`.
 
-  * **Purpose:** The standard recommended variant, offering an excellent balance of quality and efficiency.
+* `drop_rate`: Dropout rate within `GatedFFN`.
 
-* **`aether_large`**:
+* `drop_path_rate`: Total stochastic depth rate, linearly distributed across blocks.
 
-  * **Parameters:** `embed_dim=180`, `depths=(8, 8, 8, 8, 8, 8, 8, 8)`, `lk_kernel=13`
+* `lk_kernel`: Large kernel size for `ReparamLargeKernelConv` (e.g., `11`, `13`).
 
-  * **Purpose:** The largest variant for maximum quality, with a slightly larger large-kernel size (`lk_kernel`) to capture even more global context. It naturally demands more computational resources but pushes the boundaries of quality.
+* `sk_kernel`: Small kernel size for `ReparamLargeKernelConv` (typically `3`).
 
-These variants ensure that AetherNet can be adapted to a wide array of use cases, from real-time video upscaling to high-fidelity image restoration for professional applications.
+* `scale`: The super-resolution upscale factor (e.g., `2`, `3`, `4`).
 
-## 💡 Novelty & Strengths
+* `img_range`: The maximum pixel value range for normalization (e.g., `1.0` for [0,1] input).
 
-AetherNet distinguishes itself from other SISR networks through:
+* `fused_init`: Boolean flag; if `True`, initializes the network directly in its fused (inference-optimized) state. Useful when loading a pre-fused checkpoint.
 
-* **Novel Fusion of Concepts:** It uniquely combines the re-parameterization of large kernel convolutions with a specifically designed Gated FFN within a residual framework, tailored for efficient and high-quality image reconstruction. This particular synergy aims to achieve superior performance-to-cost ratio.
+## License
 
-* **Inference Efficiency by Design:** Unlike many SOTA models that achieve high quality at the expense of massive FLOPs and slow inference, AetherNet is inherently designed for fast deployment via its fusable components. This focus on post-training efficiency makes it highly competitive for real-world applications.
+AetherNet is released under the MIT License. See the `LICENSE` file for more details.
 
-* **Strong Balance of Performance and Resources:** AetherNet seeks to occupy a sweet spot in the SISR landscape, offering quality comparable to or exceeding many larger models, but with significantly reduced inference times and memory footprints after fusion.
-
-* **Deployment-Oriented Development:** The entire workflow, from training architecture to release (fusion, ONNX export, TensorRT compatibility), is structured to facilitate seamless deployment.
-
-AetherNet is needed and important because it addresses the critical demand for **deployable, high-performance SISR solutions** that can run efficiently on modern GPUs without sacrificing too much visual quality. It represents a step towards making advanced super-resolution more accessible and practical for a wider range of applications.
-
-## 🚀 How to Use This Network
-
-This repository provides the necessary components to train, fuse, convert, and integrate AetherNet into various popular deep learning frameworks and inference pipelines.
-
-The general workflow is:
-
-1. **Train:** Train an AetherNet model using `neosr` or `traiNNer-redux`.
-
-2. **Fuse (Recommended):** Convert the trained model to its fused (inference-optimized) state using `fuse_script`.
-
-3. **Convert to ONNX:** Convert the fused model to the ONNX format using the `onnx` conversion script.
-
-4. **Create TensorRT Engine:** Use the ONNX model to build a highly optimized TensorRT engine for maximum performance on NVIDIA GPUs.
-
-Detailed instructions for each step are provided in the respective sub-directories:
-
-* **`neosr/`**: Contains the `aether_arch.py` file for integrating AetherNet with the `neosr` framework, along with example configuration files for training.
-
-* **`traiNNer-redux/`**: Contains the `aether_arch.py` file for integrating AetherNet with the `traiNNer-redux` framework.
-
-* **`fuse_script/`**: Contains `fuse_aether.py` and its `Readme.md` for converting unfused AetherNet checkpoints into fused, optimized ones for faster inference. **Highly recommended before ONNX conversion.**
-
-* **`onnx/`**: Contains `aether2onnx.py` and its `Readme.md` for converting your AetherNet model to the ONNX format. This script also supports exporting models with dynamic input shapes.
-
-* **`spandrel/`**: Contains the necessary files (`architectures/AetherNet/__init__.py` and `architectures/AetherNet/__arch/aether_core.py`) to enable **automatic detection and loading** of AetherNet models (both fused and unfused) by the Spandrel model introspection library. Spandrel will automatically deduce the model's scale, fusion state, and network options (small, medium, large) from the checkpoint.
-
-## 📂 Repository Structure
-
-```
-
-AetherNet/
-├── fuse\_script/              \# Script to fuse trained AetherNet models for inference speedup
-│   ├── fuse\_aether.py        \#   - The fusion script
-│   └── Readme.md             \#   - Usage instructions for the fusion script
-├── neosr/                    \# Integration with the neosr training framework
-│   ├── archs/                \#   - Architecture definitions for neosr
-│   │   └── aether\_arch.py    \#     - AetherNet architecture for neosr
-│   └── options/              \#   - Example training/testing configuration files
-│       ├── 2xBHI\_aether\_medium\_l1pretrain.toml
-│       └── test\_aether.toml
-├── onnx/                     \# Scripts for ONNX export and TensorRT compatibility
-│   ├── aether2onnx.py        \#   - Script to convert .pth to .onnx
-│   └── Readme.md             \#   - Usage instructions for ONNX export and TRT conversion
-├── spandrel/                 \# Integration with the Spandrel model introspection library
-│   └── architectures/        \#   - Spandrel's architecture detection files
-│       └── AetherNet/        \#     - AetherNet specific Spandrel integration
-│           ├── \_arch/        \#       - Core AetherNet definition for Spandrel
-│           │   └── aether\_core.py
-│           └── **init**.py   \#       - Spandrel detection logic (fused/unfused, scale, etc.)
-└── traiNNer-redux/           \# Integration with the traiNNer-redux training framework
-└── traiNNer/
-└── archs/            \#   - Architecture definitions for traiNNer-redux
-└── aether\_arch.py\#     - AetherNet architecture for traiNNer-redux
-
-```
-
-## 🤝 Contribution & License
-
-This project is developed by **Philip Hofmann** with the valuable assistance of AI models.
-
-This code is released under the **MIT License**.
+---
+**Created by Philip Hofmann with the help of AI.**
