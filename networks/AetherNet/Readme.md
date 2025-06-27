@@ -1,5 +1,5 @@
 # AetherNet: High-Performance Quantization-Aware Super-Resolution
-<p align="right" style="color: orange; font-weight: bold;">⚠️ Under Development: Code and features may change without prior notice.</p>
+⚠️ Under Development: Code and features may change without prior notice ⚠️
 
 ## ✨ Introduction
 
