@@ -113,8 +113,7 @@ trtexec --onnx=converted_models_dynamic/aether_medium_2x_fp32_int8.onnx \
         --int8 \
         --minShapes=input:1x3x32x32 \
         --optShapes=input:1x3x256x256 \
-        --maxShapes=input:16x3x1080x1920 \
-        --verbose
+        --maxShapes=input:16x3x1080x1920
 ```
 
 **`trtexec` Argument Explanations for Speed and Quality:**
