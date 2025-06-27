@@ -114,7 +114,6 @@ trtexec --onnx=converted_models_dynamic/aether_medium_2x_fp32_int8.onnx \
         --minShapes=input:1x3x32x32 \
         --optShapes=input:1x3x256x256 \
         --maxShapes=input:16x3x1080x1920 \
-        --buildOnly \
         --verbose
 ```
 
