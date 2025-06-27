@@ -1,4 +1,3 @@
-````markdown
 # `core/`: AetherNet's Single Source of Truth
 
 This `core/` directory houses the foundational and pure PyTorch implementation of the AetherNet super-resolution architecture. It contains one crucial file:
@@ -50,6 +49,3 @@ AetherNet's core implementation (`aether_core.py`) is released under the MIT Lic
 -----
 
 **Created by Philip Hofmann with the help of AI.**
-
-```
-```
