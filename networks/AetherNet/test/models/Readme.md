@@ -80,7 +80,7 @@ trtexec --onnx=./aether_small_2x_fp32_int8.onnx \
         --int8 \
         --minShapes=input:1x3x32x32 \
         --optShapes=input:1x3x256x256 \
-        --maxShapes=input:16x3x1080x1920
+        --maxShapes=input:1x3x720x1280
 ````
 
 **`trtexec` Argument Breakdown (Optimized for Speed & Quality):**
@@ -90,7 +90,7 @@ trtexec --onnx=./aether_small_2x_fp32_int8.onnx \
   * `--int8`: **This is the core flag that tells TensorRT to build an INT8 precision engine.** TensorRT will automatically leverage the QDQ information from the ONNX graph for precise quantization.
   * `--minShapes=input:1x3x32x32`: Defines the minimum input dimensions that the TensorRT engine will support. This should match the `--min_batch_size`, `--min_height`, and `--min_width` used during the ONNX export.
   * `--optShapes=input:1x3x256x256`: Defines the *optimal* input dimensions for the engine. TensorRT will perform its most intensive optimizations for this specific shape. **Set this to the most commonly expected inference resolution (e.g., a typical patch size for tiling, or a frequent image resolution you will process).** This should match `--opt_batch_size`, `--opt_height`, and `--opt_width` from the ONNX export.
-  * `--maxShapes=input:16x3x1080x1920`: Defines the maximum input dimensions the engine can handle. This ensures the engine can scale up to common full HD resolutions (1080p width, 1920p height) without requiring tiling, if sufficient VRAM is available. This should match `--max_batch_size`, `--max_height`, and `--max_width` from the ONNX export.
+  * `--maxShapes=input:1x3x720x1280`: Defines the maximum input dimensions the engine can handle. This ensures the engine can scale up to HD resolutions (720p width, 1280p height) without requiring tiling, if sufficient VRAM is available. This should match `--max_batch_size`, `--max_height`, and `--max_width` from the ONNX export.
   * `--buildOnly`: Instructs `trtexec` to only build the engine and not run immediate inference. This is typically desired when creating the engine for later deployment.
   * `--verbose`: Provides detailed logging during the engine building process, which is very helpful for understanding the optimization steps and for debugging any potential issues.
 

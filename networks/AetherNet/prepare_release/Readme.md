@@ -113,7 +113,7 @@ trtexec --onnx=converted_models_dynamic/aether_medium_2x_fp32_int8.onnx \
         --int8 \
         --minShapes=input:1x3x32x32 \
         --optShapes=input:1x3x256x256 \
-        --maxShapes=input:16x3x1080x1920
+        --maxShapes=input:1x3x720x1280
 ```
 
 **`trtexec` Argument Explanations for Speed and Quality:**
@@ -123,7 +123,7 @@ trtexec --onnx=converted_models_dynamic/aether_medium_2x_fp32_int8.onnx \
   * `--int8`: **This is the critical flag for INT8 precision.** TensorRT will leverage the QDQ information within the ONNX graph to build an INT8 engine.
   * `--minShapes=input:1x3x32x32`: Defines the minimum input dimensions the engine will support. **Align these with the `--min_batch_size`, `--min_height`, `--min_width` used during ONNX export for optimal flexibility.**
   * `--optShapes=input:1x3x256x256`: Defines the optimal input dimensions for the engine. TensorRT will heavily optimize for this shape, so **set this to the most frequently expected inference size** (e.g., 256x256, 512x512, or common video resolutions). This should align with `--opt_batch_size`, `--opt_height`, `--opt_width` from the ONNX export.
-  * `--maxShapes=input:16x3x1080x1920`: Defines the maximum input dimensions the engine will support. **Align these with the `--max_batch_size`, `--max_height`, `--max_width` from the ONNX export.**
+  * `--maxShapes=input:1x3x720x1280`: Defines the maximum input dimensions the engine will support. **Align these with the `--max_batch_size`, `--max_height`, `--max_width` from the ONNX export.**
   * `--buildOnly`: Instructs `trtexec` to only build the engine and not run immediate inference.
   * `--verbose`: Provides detailed output during the engine building process, useful for debugging.
 
